@@ -63,3 +63,6 @@ typings/
 
 # other directories to leave out
 local/
+
+# intellij
+.idea/

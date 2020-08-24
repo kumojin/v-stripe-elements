@@ -1072,8 +1072,10 @@ const defaultMenuProps = { ..._VSelect_VSelect__WEBPACK_IMPORTED_MODULE_1__["def
 
     isFocused(val) {
       if (val) {
+        document.addEventListener('copy', this.onCopy);
         this.$refs.input && this.$refs.input.select();
       } else {
+        document.removeEventListener('copy', this.onCopy);
         this.updateSelf();
       }
     },
@@ -1174,6 +1176,7 @@ const defaultMenuProps = { ..._VSelect_VSelect__WEBPACK_IMPORTED_MODULE_1__["def
       const input = _VTextField_VTextField__WEBPACK_IMPORTED_MODULE_2__["default"].options.methods.genInput.call(this);
       input.data = input.data || {};
       input.data.attrs = input.data.attrs || {};
+      input.data.attrs.autocomplete = 'off';
       input.data.domProps = input.data.domProps || {};
       input.data.domProps.value = this.internalSearch;
       return input;
@@ -1261,19 +1264,6 @@ const defaultMenuProps = { ..._VSelect_VSelect__WEBPACK_IMPORTED_MODULE_1__["def
 
     hasItem(item) {
       return this.selectedValues.indexOf(this.getValue(item)) > -1;
-    },
-
-    onFocus() {
-      if (!this.isFocused) {
-        document.addEventListener('copy', this.onCopy);
-      }
-
-      _VTextField_VTextField__WEBPACK_IMPORTED_MODULE_2__["default"].options.methods.onFocus.call(this);
-    },
-
-    onBlur() {
-      document.removeEventListener('copy', this.onCopy);
-      _VSelect_VSelect__WEBPACK_IMPORTED_MODULE_1__["default"].options.methods.onBlur.call(this);
     },
 
     onCopy(event) {
@@ -13599,7 +13589,8 @@ __webpack_require__.r(__webpack_exports__);
   },
   watch: {
     src() {
-      if (!this.isLoading) this.init();else this.loadImage();
+      // Force re-init when src changes
+      if (!this.isLoading) this.init(undefined, undefined, true);else this.loadImage();
     },
 
     '$vuetify.breakpoint.width': 'getSrc'
@@ -17374,7 +17365,7 @@ const baseMixins = Object(_util_mixins__WEBPACK_IMPORTED_MODULE_7__["default"])(
       const backgroundOpacity = this.backgroundOpacity == null ? this.backgroundColor ? 1 : 0.3 : parseFloat(this.backgroundOpacity);
       return {
         opacity: backgroundOpacity,
-        left: Object(_util_helpers__WEBPACK_IMPORTED_MODULE_6__["convertToUnit"])(this.normalizedValue, '%'),
+        [this.$vuetify.rtl ? 'right' : 'left']: Object(_util_helpers__WEBPACK_IMPORTED_MODULE_6__["convertToUnit"])(this.normalizedValue, '%'),
         width: Object(_util_helpers__WEBPACK_IMPORTED_MODULE_6__["convertToUnit"])(this.normalizedBuffer - this.normalizedValue, '%')
       };
     },
@@ -18763,7 +18754,6 @@ const baseMixins = Object(_util_mixins__WEBPACK_IMPORTED_MODULE_11__["default"])
             e.stopPropagation();
             this.selectedIndex = index;
           },
-          focus,
           'click:close': () => this.onChipInput(item)
         },
         key: JSON.stringify(this.getValue(item))
@@ -27764,7 +27754,7 @@ class Vuetify {
 }
 Vuetify.install = _install__WEBPACK_IMPORTED_MODULE_0__["install"];
 Vuetify.installed = false;
-Vuetify.version = "2.1.1";
+Vuetify.version = "2.1.2";
 //# sourceMappingURL=framework.js.map
 
 /***/ }),
@@ -28534,20 +28524,16 @@ __webpack_require__.r(__webpack_exports__);
  */
 
 function makeWatcher(property) {
-  return {
-    handler(val, oldVal) {
-      for (const attr in oldVal) {
-        if (!Object.prototype.hasOwnProperty.call(val, attr)) {
-          this.$delete(this.$data[property], attr);
-        }
+  return function (val, oldVal) {
+    for (const attr in oldVal) {
+      if (!Object.prototype.hasOwnProperty.call(val, attr)) {
+        this.$delete(this.$data[property], attr);
       }
+    }
 
-      for (const attr in val) {
-        this.$set(this.$data[property], attr, val[attr]);
-      }
-    },
-
-    immediate: true
+    for (const attr in val) {
+      this.$set(this.$data[property], attr, val[attr]);
+    }
   };
 }
 
@@ -28556,12 +28542,18 @@ function makeWatcher(property) {
     attrs$: {},
     listeners$: {}
   }),
-  watch: {
+
+  created() {
     // Work around unwanted re-renders: https://github.com/vuejs/vue/issues/10115
     // Make sure to use `attrs$` instead of `$attrs` (confusing right?)
-    $attrs: makeWatcher('attrs$'),
-    $listeners: makeWatcher('listeners$')
+    this.$watch('$attrs', makeWatcher('attrs$'), {
+      immediate: true
+    });
+    this.$watch('$listeners', makeWatcher('listeners$'), {
+      immediate: true
+    });
   }
+
 }));
 //# sourceMappingURL=index.js.map
 
@@ -35441,6 +35433,13 @@ var base = vue__WEBPACK_IMPORTED_MODULE_0___default.a.extend({
       type: String,
       required: true
     },
+    locale: {
+      type: String,
+      "default": 'auto',
+      validator: function validator(value) {
+        return ['auto', 'en', 'fr', 'fr-CA'].indexOf(value) !== -1;
+      }
+    },
     create: {
       type: String,
       "default": 'token'
@@ -35587,7 +35586,9 @@ var base = vue__WEBPACK_IMPORTED_MODULE_0___default.a.extend({
         zip: zip
       }); // initialize Stripe
 
-      this.stripe = Stripe(this.apiKey); // eslint-disable-line no-undef
+      this.stripe = Stripe(this.apiKey, {
+        locale: this.locale
+      }); // eslint-disable-line no-undef
       // create an Elements generator
 
       var font = fontUrl || fontName;

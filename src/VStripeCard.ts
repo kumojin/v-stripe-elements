@@ -54,6 +54,13 @@ export default base.extend<options>().extend({
       type: String,
       required: true,
     },
+    locale: {
+      type: String,
+      default: 'auto',
+      validator: value => {
+        return ['auto', 'en', 'fr', 'fr-CA'].indexOf(value) !== -1
+      },
+    },
     create: {
       type: String,
       default: 'token',
@@ -165,7 +172,9 @@ export default base.extend<options>().extend({
       const style = this.genStyle(customStyle, fontName, isDark, theme)
       const cardProps = this.genCardProps({ disabled, hideIcon, hidePostalCode, iconStyle, style, zip })
       // initialize Stripe
-      this.stripe = Stripe(this.apiKey) // eslint-disable-line no-undef
+      this.stripe = Stripe(this.apiKey, {
+        locale: this.locale,
+      }) // eslint-disable-line no-undef
       // create an Elements generator
       const font = fontUrl || fontName
       this.elements = this.stripe.elements(this.genFont(font))
