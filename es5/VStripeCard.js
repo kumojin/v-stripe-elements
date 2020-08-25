@@ -9,7 +9,7 @@ var _vue = _interopRequireDefault(require("vue"));
 
 var _deepmerge = _interopRequireDefault(require("deepmerge"));
 
-require("../src/VStripeCard.sass");
+require("..\\src\\VStripeCard.sass");
 
 var _lib = require("vuetify/lib");
 
@@ -37,6 +37,13 @@ var _default2 = base.extend().extend({
     apiKey: {
       type: String,
       required: true
+    },
+    locale: {
+      type: String,
+      "default": 'auto',
+      validator: function validator(value) {
+        return ['auto', 'en', 'fr', 'fr-CA'].indexOf(value) !== -1;
+      }
     },
     create: {
       type: String,
@@ -181,7 +188,9 @@ var _default2 = base.extend().extend({
         zip: zip
       }); // initialize Stripe
 
-      this.stripe = Stripe(this.apiKey); // eslint-disable-line no-undef
+      this.stripe = Stripe(this.apiKey, {
+        locale: this.locale
+      }); // eslint-disable-line no-undef
       // create an Elements generator
 
       var font = fontUrl || fontName;
